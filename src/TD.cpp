@@ -1,18 +1,17 @@
-#include "adrc/TD.hpp"
+#include "TD.hpp"
 #include <cmath>
 #include <algorithm>
 #include <stdexcept>
 #include <iostream>
 
 // Constructor
-TD::TD(std::string method, double dt, std::vector<double> params) 
+TD::TD(Method method, numeric_type dt, std::vector<numeric_type> params) 
     : y(0.0), yd(0.0), ydd(0.0) {
     
     if (dt <= 0) {
         throw std::invalid_argument("Sample time dt must be positive");
     }
     
-    std::transform(method.begin(), method.end(), method.begin(), ::tolower);
     this->method = method;
     this->dt = dt;
     this->params = params;
@@ -22,78 +21,86 @@ TD::TD(std::string method, double dt, std::vector<double> params)
 }
 
 // Initialize state based on method
-void TD::_initialize_state(double initial_value) {
-    if (method == "euler") {
+void TD::_initialize_state(numeric_type initial_value) {
+    switch (method)
+    {
+    case Method::Euler:
         state["prev_y"] = initial_value;
         state["prev_yd"] = 0.0;
         y = initial_value;
         yd = 0.0;
         ydd = 0.0;
-    }
-    else if (method == "tod") {
+        break;
+    case Method::Tod:
         state["v1"] = initial_value;
         state["v2"] = 0.0;
         y = initial_value;
         yd = 0.0;
         ydd = 0.0;
-    }
-    else if (method == "ld") {
+        break;
+    case Method::LD:
         state["v1"] = initial_value;
         state["v2"] = 0.0;
         y = initial_value;
         yd = 0.0;
         ydd = 0.0;
-    }
-    else if (method == "red") {
+        break;
+    case Method::Red:
         state["v1"] = initial_value;
         state["v2"] = 0.0;
         y = initial_value;
         yd = 0.0;
         ydd = 0.0;
-    }
-    else if (method == "intd") {
+        break;
+    case Method::IntD:
         state["v1"] = initial_value;
         state["v2"] = 0.0;
         y = initial_value;
         yd = 0.0;
         ydd = 0.0;
-    }
-    else {
+        break;
+    default:
         throw std::invalid_argument("Unknown TD method: " + method);
+        break;
     }
 }
 
 // Update method dispatcher
-void TD::update(double ref) {
-    if (method == "euler") {
+void TD::update(numeric_type ref) {
+    switch (method)
+    {
+    case Method::Euler:
         _update_euler(ref);
-    }
-    else if (method == "tod") {
+        break;
+    case Method::Tod:
         _update_tod(ref);
-    }
-    else if (method == "ld") {
+        break;
+    case Method::LD:
         _update_ld(ref);
-    }
-    else if (method == "red") {
+        break;
+    case Method::Red:
         _update_red(ref);
-    }
-    else if (method == "intd") {
+        break;
+    case Method::IntD:
         _update_intd(ref);
+        break;
+    default:
+        break;
     }
 }
 
 // Reset method
-void TD::reset(double initial_value) {
+void TD::reset(numeric_type initial_value) {
     _initialize_state(initial_value);
 }
 
 // Set parameters
-void TD::set_parameters(std::vector<double> params) {
+void TD::set_parameters(std::vector<numeric_type> params) {
     this->params = params;
 }
 
 // Set sample time
-void TD::set_sample_time(double dt) {
+void TD::set_sample_time(numeric_type dt) {
     if (dt <= 0) {
         throw std::invalid_argument("Sample time dt must be positive");
     }
@@ -101,12 +108,12 @@ void TD::set_sample_time(double dt) {
 }
 
 // Euler-based low-pass filter with derivative estimation
-void TD::_update_euler(double ref) {
+void TD::_update_euler(numeric_type ref) {
     /*
      * Euler-based low-pass filter with derivative estimation.
      * Parameter: a (filter coefficient, default 0.9)
      */
-    double a = !params.empty() ? params[0] : 0.9;
+    numeric_type a = !params.empty() ? params[0] : 0.9;
     
     // Low pass filter
     y = a * state["prev_y"] + (1.0 - a) * ref;
@@ -123,16 +130,16 @@ void TD::_update_euler(double ref) {
 }
 
 // Time Optimal Differentiator
-void TD::_update_tod(double ref) {
+void TD::_update_tod(numeric_type ref) {
     /*
      * Time Optimal Differentiator.
      * Parameter: r (convergence rate, default 1)
      */
-    double r = !params.empty() ? params[0] : 1.0;
+    numeric_type r = !params.empty() ? params[0] : 1.0;
     
     // Compute derivatives
-    double dot_v1 = state["v2"];
-    double dot_v2 = -r * ((state["v1"] - ref + 
+    numeric_type dot_v1 = state["v2"];
+    numeric_type dot_v2 = -r * ((state["v1"] - ref + 
                           (state["v2"] * std::abs(state["v2"])) / (2.0 * r)) > 0 ? 1.0 : -1.0);
     
     // Forward Euler integration
@@ -146,16 +153,16 @@ void TD::_update_tod(double ref) {
 }
 
 // Linear Differentiator
-void TD::_update_ld(double ref) {
+void TD::_update_ld(numeric_type ref) {
     /*
      * Linear Differentiator.
      * Parameter: lambda (bandwidth parameter, default 1)
      */
-    double lambda_param = !params.empty() ? params[0] : 1.0;
+    numeric_type lambda_param = !params.empty() ? params[0] : 1.0;
     
     // Compute derivatives
-    double dot_v1 = state["v2"] - (state["v1"] - ref) / lambda_param;
-    double dot_v2 = -2.0 * (state["v1"] - ref) / lambda_param;
+    numeric_type dot_v1 = state["v2"] - (state["v1"] - ref) / lambda_param;
+    numeric_type dot_v2 = -2.0 * (state["v1"] - ref) / lambda_param;
     
     // Forward Euler integration
     state["v1"] = state["v1"] + dot_v1 * dt;
@@ -168,12 +175,12 @@ void TD::_update_ld(double ref) {
 }
 
 // Robust Exact Differentiator
-void TD::_update_red(double ref) {
+void TD::_update_red(numeric_type ref) {
     /*
      * Robust Exact Differentiator.
      * Parameters: lambda1, lambda2 (both default to 1)
      */
-    double lambda1, lambda2;
+    numeric_type lambda1, lambda2;
     if (params.size() < 2) {
         lambda1 = 1.0;
         lambda2 = 1.0;
@@ -183,9 +190,9 @@ void TD::_update_red(double ref) {
     }
     
     // Compute derivatives
-    double err = state["v1"] - ref;
-    double dot_v1 = state["v2"] - lambda1 * std::sqrt(std::abs(err)) * (err > 0 ? 1.0 : -1.0);
-    double dot_v2 = -lambda2 * (err > 0 ? 1.0 : -1.0);
+    numeric_type err = state["v1"] - ref;
+    numeric_type dot_v1 = state["v2"] - lambda1 * std::sqrt(std::abs(err)) * (err > 0 ? 1.0 : -1.0);
+    numeric_type dot_v2 = -lambda2 * (err > 0 ? 1.0 : -1.0);
     
     // Forward Euler integration
     state["v1"] = state["v1"] + dot_v1 * dt;
@@ -198,12 +205,12 @@ void TD::_update_red(double ref) {
 }
 
 // Improved Nonlinear Tracking Differentiator
-void TD::_update_intd(double ref) {
+void TD::_update_intd(numeric_type ref) {
     /*
      * Improved Nonlinear Tracking Differentiator.
      * Parameters: alpha, beta, gamma, r (defaults: 1, 1, 1, 1)
      */
-    double alpha, beta, gamma, r;
+    numeric_type alpha, beta, gamma, r;
     if (params.size() < 4) {
         alpha = 1.0;
         beta = 1.0;
@@ -219,15 +226,15 @@ void TD::_update_intd(double ref) {
     // Parameter validation
     if (alpha < 0 || alpha > 1) {
         std::cerr << "Warning: alpha should be between 0 and 1 for INTD method, clamping" << std::endl;
-        alpha = std::max(0.0, std::min(1.0, alpha));
+        alpha = std::max<numeric_type>(0.0, std::min<numeric_type>(1.0, alpha));
     }
     if (beta <= 0 || gamma <= 0 || r <= 0) {
         throw std::invalid_argument("beta, gamma, and r must be positive for INTD method");
     }
     
     // Compute derivatives
-    double dot_v1 = state["v2"];
-    double dot_v2 = -r * r * std::tanh((beta * state["v1"] - (1.0 - alpha) * ref) / gamma) 
+    numeric_type dot_v1 = state["v2"];
+    numeric_type dot_v2 = -r * r * std::tanh((beta * state["v1"] - (1.0 - alpha) * ref) / gamma) 
                     - r * state["v2"];
     
     // Forward Euler integration

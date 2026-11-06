@@ -1,5 +1,4 @@
-#ifndef ADRC_HPP
-#define ADRC_HPP
+#pragma once
 
 #include <vector>
 #include <string>
@@ -123,5 +122,3 @@ public:
     
     std::vector<double> getObserverStates(int layer = 0);
 };
-
-#endif // ADRC_HPP

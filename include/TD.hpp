@@ -1,5 +1,4 @@
-#ifndef TD_HPP
-#define TD_HPP
+#pragma once
 
 #include <vector>
 #include <string>
@@ -7,41 +6,47 @@
 
 class TD {
 public:
+    typedef float numeric_type;
+    enum class Method {
+        Euler, //Euler-based low passs filter with derivative estimation
+        Tod, //Time Optimal Differentiator
+        LD, //Linear Differentiator
+        Red, //Robust Exact Differentiator
+        IntD, //Improved nonlinear tracking differentiator
+    };
     // Output properties
-    double y;      // Filtered output
-    double yd;     // First derivative
-    double ydd;    // Second derivative
+    numeric_type y;      // Filtered output
+    numeric_type yd;     // First derivative
+    numeric_type ydd;    // Second derivative
     
     // Constructor
-    TD(std::string method, double dt, std::vector<double> params = {});
+    TD(Method method, numeric_type dt, std::vector<numeric_type> params = {});
     
     // Update method
-    void update(double ref);
+    void update(numeric_type ref);
     
     // Reset method
-    void reset(double initial_value = 0.0);
+    void reset(numeric_type initial_value = 0.0);
     
     // Set parameters
-    void set_parameters(std::vector<double> params);
+    void set_parameters(std::vector<numeric_type> params);
     
     // Set sample time
-    void set_sample_time(double dt);
+    void set_sample_time(numeric_type dt);
 
 private:
-    std::string method;
-    double dt;
-    std::vector<double> params;
-    std::map<std::string, double> state;
+    Method method;
+    numeric_type dt;
+    std::vector<numeric_type> params;
+    std::map<std::string, numeric_type> state;
     
     // Initialization
-    void _initialize_state(double initial_value);
+    void _initialize_state(numeric_type initial_value);
     
     // Update methods for each differentiator type
-    void _update_euler(double ref);
-    void _update_tod(double ref);
-    void _update_ld(double ref);
-    void _update_red(double ref);
-    void _update_intd(double ref);
+    void _update_euler(numeric_type ref);
+    void _update_tod(numeric_type ref);
+    void _update_ld(numeric_type ref);
+    void _update_red(numeric_type ref);
+    void _update_intd(numeric_type ref);
 };
-
-#endif // TD_HPP
